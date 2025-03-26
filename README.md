@@ -9,49 +9,10 @@ A comprehensive web application for managing gym operations, including member re
 - **Membership Management**: Create and manage memberships with different types and payment statuses
 - **Attendance Tracking**: Record and monitor member check-ins
 
-## Database Schema
+## Database Schema - ER Diagram
 
-```
-erDiagram
-    MEMBER ||--|| MEMBERSHIP : has
-    TRAINER ||--o{ MEMBER : trains
-    MEMBER {
-        int member_id PK
-        int trainer_id FK
-        string first_name
-        string last_name
-        string contact_number
-        string email
-        date date_of_birth
-        string gender
-    }
+![image](https://github.com/user-attachments/assets/4558403d-747e-4807-a0d3-a82771e8bf34)
 
-    MEMBERSHIP {
-        int membership_id PK
-        int member_id FK
-        string membership_type
-        date start_date
-        date end_date
-        decimal monthly_fee
-        string payment_status
-    }
-
-    TRAINER {
-        int trainer_id PK
-        string first_name
-        string last_name
-        string specialization
-        string contact_number
-        decimal hourly_rate
-    }
-
-    ATTENDANCE {
-        int attendance_id PK
-        int member_id FK
-        date attendance_date
-        time check_in_time
-    }
-```
 
 ## Technology Stack
 
