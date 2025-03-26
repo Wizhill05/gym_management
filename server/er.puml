@@ -1,0 +1,50 @@
+@startuml Gym Management System Database Schema
+
+' Entity definitions
+entity "member" {
+  *member_id: INTEGER <<PK>>
+  --
+  trainer_id: INTEGER <<FK>>
+  *first_name: TEXT
+  *last_name: TEXT
+  contact_number: TEXT
+  email: TEXT <<UNIQUE>>
+  date_of_birth: DATE
+  gender: TEXT
+}
+
+entity "membership" {
+  *membership_id: INTEGER <<PK>>
+  --
+  *member_id: INTEGER <<FK>> <<UNIQUE>>
+  *membership_type: TEXT
+  *start_date: DATE
+  *end_date: DATE
+  *monthly_fee: DECIMAL(10,2)
+  *payment_status: TEXT
+}
+
+entity "trainer" {
+  *trainer_id: INTEGER <<PK>>
+  --
+  *first_name: TEXT
+  *last_name: TEXT
+  specialization: TEXT
+  contact_number: TEXT
+  hourly_rate: DECIMAL(10,2)
+}
+
+entity "attendance" {
+  *attendance_id: INTEGER <<PK>>
+  --
+  *member_id: INTEGER <<FK>>
+  *attendance_date: DATE
+  *check_in_time: DATETIME
+}
+
+' Relationships
+member ||--|| membership : has
+trainer ||--o{ member : trains
+member ||--o{ attendance : checks_in
+
+@enduml
