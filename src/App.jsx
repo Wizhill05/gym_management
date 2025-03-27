@@ -7,42 +7,40 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 function App() {
   const [page, setPage] = useState("dashboard");
-  const [members, setMembers] = useState([]);
-  const [trainers, setTrainers] = useState([]);
-  const [memberships, setMemberships] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [todayAttendance, setTodayAttendance] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [diseases, setDiseases] = useState([]);
+  const [checkins, setCheckins] = useState([]);
   const [message, setMessage] = useState("");
-  const [membershipStats, setMembershipStats] = useState({});
-  const [membershipTypes, setMembershipTypes] = useState([]);
-  const [attendanceStats, setAttendanceStats] = useState({});
-  const [expiringMemberships, setExpiringMemberships] = useState([]);
+  const [hospitalStats, setHospitalStats] = useState({});
+  const [diseaseStats, setDiseaseStats] = useState([]);
+  const [doctorWorkload, setDoctorWorkload] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientHistory, setPatientHistory] = useState([]);
 
   // Form states
-  const [memberForm, setMemberForm] = useState({
+  const [patientForm, setPatientForm] = useState({
     first_name: "",
     last_name: "",
-    trainer_id: "",
-    contact_number: "",
-    email: "",
     date_of_birth: "",
     gender: "Male",
+    contact_number: "",
+    email: "",
+    blood_group: "",
+    address: "",
+    emergency_contact: "",
   });
 
-  const [membershipForm, setMembershipForm] = useState({
-    member_id: "",
-    membership_type: "Standard",
-    start_date: new Date().toISOString().split("T")[0],
-    end_date: new Date(new Date().setMonth(new Date().getMonth() + 1))
-      .toISOString()
-      .split("T")[0],
-    monthly_fee: 50,
-    payment_status: "Paid",
-  });
-
-  const [attendanceForm, setAttendanceForm] = useState({
-    member_id: "",
+  const [checkinForm, setCheckinForm] = useState({
+    patient_id: "",
+    doctor_id: "",
+    disease_id: "",
+    status: "Pending",
+    symptoms: "",
+    diagnosis: "",
+    prescription: "",
+    follow_up_date: "",
   });
 
   const backendUrl = "http://localhost:5000";
@@ -51,15 +49,15 @@ function App() {
   useEffect(() => {
     if (page === "dashboard") {
       fetchDashboardData();
-    } else if (page === "members") {
-      fetchMembers();
-      fetchTrainers();
-    } else if (page === "memberships") {
-      fetchMemberships();
-      fetchMembers();
-    } else if (page === "attendance") {
-      fetchTodayAttendance();
-      fetchMembers();
+    } else if (page === "patients") {
+      fetchPatients();
+    } else if (page === "checkins") {
+      fetchCheckins();
+      fetchPatients();
+      fetchDoctors();
+      fetchDiseases();
+    } else if (page === "patientRecords") {
+      fetchPatients();
     }
   }, [page]);
 
@@ -67,36 +65,27 @@ function App() {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Fetch all required data for dashboard
       const [
-        membersRes,
-        membershipStatsRes,
-        membershipTypesRes,
-        attendanceStatsRes,
-        expiringMembershipsRes,
-        todayAttendanceRes,
+        patientsRes,
+        hospitalStatsRes,
+        diseaseStatsRes,
+        doctorWorkloadRes,
       ] = await Promise.all([
-        fetch(`${backendUrl}/api/members`),
-        fetch(`${backendUrl}/api/stats/memberships`),
-        fetch(`${backendUrl}/api/stats/membership-types`),
-        fetch(`${backendUrl}/api/stats/attendance`),
-        fetch(`${backendUrl}/api/stats/expiring-memberships`),
-        fetch(`${backendUrl}/api/attendance/today`),
+        fetch(`${backendUrl}/api/patients`),
+        fetch(`${backendUrl}/api/stats/hospital`),
+        fetch(`${backendUrl}/api/stats/diseases`),
+        fetch(`${backendUrl}/api/stats/doctor-workload`),
       ]);
 
-      const members = await membersRes.json();
-      const membershipStats = await membershipStatsRes.json();
-      const membershipTypes = await membershipTypesRes.json();
-      const attendanceStats = await attendanceStatsRes.json();
-      const expiringMemberships = await expiringMembershipsRes.json();
-      const todayAttendance = await todayAttendanceRes.json();
+      const patients = await patientsRes.json();
+      const hospitalStats = await hospitalStatsRes.json();
+      const diseaseStats = await diseaseStatsRes.json();
+      const doctorWorkload = await doctorWorkloadRes.json();
 
-      setMembers(members);
-      setMembershipStats(membershipStats);
-      setMembershipTypes(membershipTypes);
-      setAttendanceStats(attendanceStats);
-      setExpiringMemberships(expiringMemberships);
-      setTodayAttendance(todayAttendance);
+      setPatients(patients);
+      setHospitalStats(hospitalStats);
+      setDiseaseStats(diseaseStats);
+      setDoctorWorkload(doctorWorkload);
     } catch (err) {
       setMessage("Error fetching dashboard data");
       console.error(err);
@@ -105,187 +94,149 @@ function App() {
     }
   };
 
-  // Members data fetching
-  const fetchMembers = async () => {
+  // Fetch patients
+  const fetchPatients = async () => {
     try {
-      const res = await fetch(`${backendUrl}/api/members`);
+      const res = await fetch(`${backendUrl}/api/patients`);
       const data = await res.json();
-      setMembers(data);
+      setPatients(data);
     } catch (err) {
-      setMessage("Error fetching members");
+      setMessage("Error fetching patients");
       console.error(err);
     }
   };
 
-  // Trainers data fetching
-  const fetchTrainers = async () => {
+  // Fetch doctors
+  const fetchDoctors = async () => {
     try {
-      const res = await fetch(`${backendUrl}/api/trainers`);
+      const res = await fetch(`${backendUrl}/api/doctors`);
       const data = await res.json();
-      setTrainers(data);
+      setDoctors(data);
     } catch (err) {
-      setMessage("Error fetching trainers");
+      setMessage("Error fetching doctors");
       console.error(err);
     }
   };
 
-  // Memberships data fetching
-  const fetchMemberships = async () => {
+  // Fetch diseases
+  const fetchDiseases = async () => {
     try {
-      const res = await fetch(`${backendUrl}/api/memberships`);
+      const res = await fetch(`${backendUrl}/api/diseases`);
       const data = await res.json();
-      setMemberships(data);
+      setDiseases(data);
     } catch (err) {
-      setMessage("Error fetching memberships");
+      setMessage("Error fetching diseases");
       console.error(err);
     }
   };
 
-  // Attendance data fetching
-  const fetchTodayAttendance = async () => {
+  // Fetch checkins
+  const fetchCheckins = async () => {
     try {
-      const res = await fetch(`${backendUrl}/api/attendance/today`);
+      const res = await fetch(`${backendUrl}/api/checkins`);
       const data = await res.json();
-      setTodayAttendance(data);
+      setCheckins(data);
     } catch (err) {
-      setMessage("Error fetching today's attendance");
+      setMessage("Error fetching checkins");
       console.error(err);
     }
   };
 
-  // Handle member form submission
-  const handleMemberSubmit = async (e) => {
+  // Fetch patient medical history
+  const fetchPatientHistory = async (patientId) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(
+        `${backendUrl}/api/patients/${patientId}/history`
+      );
+      const data = await res.json();
+      setPatientHistory(data);
+
+      // Find the patient details
+      const patient = patients.find(
+        (p) => p.patient_id === parseInt(patientId)
+      );
+      setSelectedPatient(patient);
+    } catch (err) {
+      setMessage("Error fetching patient history");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle patient form submission
+  const handlePatientSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${backendUrl}/api/members`, {
+      const res = await fetch(`${backendUrl}/api/patients`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(memberForm),
+        body: JSON.stringify(patientForm),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setMessage("Member registered successfully");
-        setMemberForm({
+        setMessage("Patient registered successfully");
+        setPatientForm({
           first_name: "",
           last_name: "",
-          trainer_id: "",
-          contact_number: "",
-          email: "",
           date_of_birth: "",
           gender: "Male",
+          contact_number: "",
+          email: "",
+          blood_group: "",
+          address: "",
+          emergency_contact: "",
         });
-        fetchMembers();
+        fetchPatients();
       } else {
         setMessage(`Error: ${data.error}`);
       }
     } catch (err) {
-      setMessage("Error registering member");
+      setMessage("Error registering patient");
       console.error(err);
     }
   };
 
-  // Handle membership form submission
-  const handleMembershipSubmit = async (e) => {
+  // Handle checkin form submission
+  const handleCheckinSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${backendUrl}/api/memberships`, {
+      const res = await fetch(`${backendUrl}/api/checkins`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(membershipForm),
+        body: JSON.stringify(checkinForm),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setMessage("Membership created successfully");
-        setMembershipForm({
-          member_id: "",
-          membership_type: "Standard",
-          start_date: new Date().toISOString().split("T")[0],
-          end_date: new Date(new Date().setMonth(new Date().getMonth() + 1))
-            .toISOString()
-            .split("T")[0],
-          monthly_fee: 50,
-          payment_status: "Paid",
+        setMessage("Checkin created successfully");
+        setCheckinForm({
+          patient_id: "",
+          doctor_id: "",
+          disease_id: "",
+          status: "Pending",
+          symptoms: "",
+          diagnosis: "",
+          prescription: "",
+          follow_up_date: "",
         });
-        fetchMemberships();
+        fetchCheckins();
       } else {
         setMessage(`Error: ${data.error}`);
       }
     } catch (err) {
-      setMessage("Error creating membership");
+      setMessage("Error creating checkin");
       console.error(err);
     }
   };
 
-  // Handle attendance form submission
-  const handleAttendanceSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`${backendUrl}/api/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(attendanceForm),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage("Attendance recorded successfully");
-        setAttendanceForm({
-          member_id: "",
-        });
-        fetchTodayAttendance();
-      } else {
-        setMessage(`Error: ${data.error}`);
-      }
-    } catch (err) {
-      setMessage("Error recording attendance");
-      console.error(err);
-    }
-  };
-
-  // Handle membership payment status update
-  const handleUpdatePaymentStatus = async (membershipId, newStatus) => {
-    try {
-      // Find the membership to update
-      const membershipToUpdate = memberships.find(
-        (m) => m.membership_id === membershipId
-      );
-
-      if (!membershipToUpdate) {
-        setMessage("Membership not found");
-        return;
-      }
-
-      const res = await fetch(`${backendUrl}/api/memberships/${membershipId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...membershipToUpdate,
-          payment_status: newStatus,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage(`Payment status updated to ${newStatus}`);
-        fetchMemberships();
-      } else {
-        setMessage(`Error: ${data.error}`);
-      }
-    } catch (err) {
-      setMessage("Error updating payment status");
-      console.error(err);
-    }
-  };
-
-  // Prepare chart data for membership types
-  const prepareMembershipTypeChartData = () => {
-    if (!membershipTypes || membershipTypes.length === 0) {
+  // Prepare chart data for disease statistics
+  const prepareDiseaseChartData = () => {
+    if (!diseaseStats || diseaseStats.length === 0) {
       return {
         labels: [],
         datasets: [
@@ -299,64 +250,21 @@ function App() {
       };
     }
 
-    return {
-      labels: membershipTypes.map((type) => type.membership_type),
-      datasets: [
-        {
-          data: membershipTypes.map((type) => type.count),
-          backgroundColor: [
-            "rgba(255, 99, 132, 0.5)",
-            "rgba(54, 162, 235, 0.5)",
-            "rgba(255, 206, 86, 0.5)",
-            "rgba(75, 192, 192, 0.5)",
-          ],
-          borderColor: [
-            "rgba(255, 99, 132, 1)",
-            "rgba(54, 162, 235, 1)",
-            "rgba(255, 206, 86, 1)",
-            "rgba(75, 192, 192, 1)",
-          ],
-          borderWidth: 1,
-        },
-      ],
-    };
-  };
-
-  // Prepare chart data for payment status
-  const preparePaymentStatusChartData = () => {
-    if (!membershipStats) {
-      return {
-        labels: [],
-        datasets: [
-          {
-            data: [],
-            backgroundColor: [],
-            borderColor: [],
-            borderWidth: 1,
-          },
-        ],
-      };
-    }
+    const colors = [
+      "rgba(255, 99, 132, 0.5)",
+      "rgba(54, 162, 235, 0.5)",
+      "rgba(255, 206, 86, 0.5)",
+      "rgba(75, 192, 192, 0.5)",
+      "rgba(153, 102, 255, 0.5)",
+    ];
 
     return {
-      labels: ["Paid", "Pending", "Overdue"],
+      labels: diseaseStats.map((disease) => disease.name),
       datasets: [
         {
-          data: [
-            membershipStats.paid_memberships || 0,
-            membershipStats.pending_memberships || 0,
-            membershipStats.overdue_memberships || 0,
-          ],
-          backgroundColor: [
-            "rgba(75, 192, 192, 0.5)",
-            "rgba(255, 206, 86, 0.5)",
-            "rgba(255, 99, 132, 0.5)",
-          ],
-          borderColor: [
-            "rgba(75, 192, 192, 1)",
-            "rgba(255, 206, 86, 1)",
-            "rgba(255, 99, 132, 1)",
-          ],
+          data: diseaseStats.map((disease) => disease.total_cases),
+          backgroundColor: colors,
+          borderColor: colors.map((color) => color.replace("0.5", "1")),
           borderWidth: 1,
         },
       ],
@@ -367,7 +275,7 @@ function App() {
   const renderDashboard = () => (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2>Gym Management Dashboard</h2>
+        <h2>Hospital Management Dashboard</h2>
         <button
           className="button refresh-btn"
           onClick={fetchDashboardData}
@@ -379,105 +287,63 @@ function App() {
 
       <div className="stats-cards">
         <div className="stat-card">
-          <h3>Members</h3>
-          <p className="stat-value">{members.length}</p>
+          <h3>Total Patients</h3>
+          <p className="stat-value">{hospitalStats.total_patients || 0}</p>
         </div>
         <div className="stat-card">
-          <h3>Active Memberships</h3>
-          <p className="stat-value">{membershipStats.total_memberships || 0}</p>
+          <h3>Total Doctors</h3>
+          <p className="stat-value">{hospitalStats.total_doctors || 0}</p>
         </div>
         <div className="stat-card">
-          <h3>Today's Attendance</h3>
-          <p className="stat-value">{attendanceStats.today_attendance || 0}</p>
+          <h3>Today's Checkins</h3>
+          <p className="stat-value">{hospitalStats.today_checkins || 0}</p>
         </div>
         <div className="stat-card">
-          <h3>Monthly Revenue</h3>
-          <p className="stat-value">
-            ${membershipStats.total_monthly_revenue || 0}
-          </p>
+          <h3>Weekly Checkins</h3>
+          <p className="stat-value">{hospitalStats.week_checkins || 0}</p>
         </div>
       </div>
 
       <div className="dashboard-grid">
         <div className="dashboard-item">
-          <h3>Membership Types</h3>
+          <h3>Disease Statistics</h3>
           <div className="chart-container">
-            <Pie data={prepareMembershipTypeChartData()} />
+            <Pie data={prepareDiseaseChartData()} />
           </div>
         </div>
 
         <div className="dashboard-item">
-          <h3>Payment Status</h3>
-          <div className="chart-container">
-            <Pie data={preparePaymentStatusChartData()} />
-          </div>
-        </div>
-
-        <div className="dashboard-item">
-          <h3>Today's Attendance</h3>
-          {todayAttendance.length === 0 ? (
-            <p className="empty-message">No attendance records for today</p>
-          ) : (
-            <ul className="mini-list">
-              {todayAttendance.slice(0, 5).map((record) => (
-                <li key={record.attendance_id} className="mini-list-item">
-                  {record.first_name} {record.last_name} -{" "}
-                  {record.check_in_time
-                    ? new Date(record.check_in_time).toLocaleTimeString()
-                    : "N/A"}
-                </li>
-              ))}
-              {todayAttendance.length > 5 && (
-                <li className="mini-list-item see-more">
-                  <button onClick={() => setPage("attendance")}>
-                    See all {todayAttendance.length} records
-                  </button>
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-
-        <div className="dashboard-item">
-          <h3>Expiring Memberships</h3>
-          {expiringMemberships.length === 0 ? (
-            <p className="empty-message">No memberships expiring soon</p>
-          ) : (
-            <ul className="mini-list">
-              {expiringMemberships.slice(0, 5).map((membership) => (
-                <li key={membership.membership_id} className="mini-list-item">
-                  {membership.first_name} {membership.last_name} - Expires{" "}
-                  {new Date(membership.end_date).toLocaleDateString()}
-                </li>
-              ))}
-              {expiringMemberships.length > 5 && (
-                <li className="mini-list-item see-more">
-                  <button onClick={() => setPage("memberships")}>
-                    See all {expiringMemberships.length} expiring memberships
-                  </button>
-                </li>
-              )}
-            </ul>
-          )}
+          <h3>Doctor Workload</h3>
+          <ul className="mini-list">
+            {doctorWorkload.map((doctor) => (
+              <li key={doctor.doctor_id} className="mini-list-item">
+                <strong>
+                  {doctor.first_name} {doctor.last_name}
+                </strong>
+                <p>Today's Patients: {doctor.today_patients}</p>
+                <p>Total Patients: {doctor.total_patients}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
   );
 
-  // Render members page
-  const renderMembers = () => (
-    <div className="members-page">
+  // Render patients page
+  const renderPatients = () => (
+    <div className="patients-page">
       <div className="form-container">
-        <h2>Register New Member</h2>
-        <form onSubmit={handleMemberSubmit}>
+        <h2>Register New Patient</h2>
+        <form onSubmit={handlePatientSubmit}>
           <div className="form-row">
             <div className="form-group">
               <label>First Name*</label>
               <input
                 type="text"
-                value={memberForm.first_name}
+                value={patientForm.first_name}
                 onChange={(e) =>
-                  setMemberForm({ ...memberForm, first_name: e.target.value })
+                  setPatientForm({ ...patientForm, first_name: e.target.value })
                 }
                 required
                 className="input"
@@ -487,9 +353,9 @@ function App() {
               <label>Last Name*</label>
               <input
                 type="text"
-                value={memberForm.last_name}
+                value={patientForm.last_name}
                 onChange={(e) =>
-                  setMemberForm({ ...memberForm, last_name: e.target.value })
+                  setPatientForm({ ...patientForm, last_name: e.target.value })
                 }
                 required
                 className="input"
@@ -499,54 +365,28 @@ function App() {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={memberForm.email}
-                onChange={(e) =>
-                  setMemberForm({ ...memberForm, email: e.target.value })
-                }
-                className="input"
-              />
-            </div>
-            <div className="form-group">
-              <label>Contact Number</label>
-              <input
-                type="text"
-                value={memberForm.contact_number}
-                onChange={(e) =>
-                  setMemberForm({
-                    ...memberForm,
-                    contact_number: e.target.value,
-                  })
-                }
-                className="input"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Date of Birth</label>
+              <label>Date of Birth*</label>
               <input
                 type="date"
-                value={memberForm.date_of_birth}
+                value={patientForm.date_of_birth}
                 onChange={(e) =>
-                  setMemberForm({
-                    ...memberForm,
+                  setPatientForm({
+                    ...patientForm,
                     date_of_birth: e.target.value,
                   })
                 }
+                required
                 className="input"
               />
             </div>
             <div className="form-group">
-              <label>Gender</label>
+              <label>Gender*</label>
               <select
-                value={memberForm.gender}
+                value={patientForm.gender}
                 onChange={(e) =>
-                  setMemberForm({ ...memberForm, gender: e.target.value })
+                  setPatientForm({ ...patientForm, gender: e.target.value })
                 }
+                required
                 className="select"
               >
                 <option value="Male">Male</option>
@@ -558,51 +398,101 @@ function App() {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Trainer</label>
-              <select
-                value={memberForm.trainer_id}
+              <label>Email</label>
+              <input
+                type="email"
+                value={patientForm.email}
                 onChange={(e) =>
-                  setMemberForm({ ...memberForm, trainer_id: e.target.value })
+                  setPatientForm({ ...patientForm, email: e.target.value })
                 }
-                className="select"
-              >
-                <option value="">No Trainer</option>
-                {trainers.map((trainer) => (
-                  <option key={trainer.trainer_id} value={trainer.trainer_id}>
-                    {trainer.first_name} {trainer.last_name} -{" "}
-                    {trainer.specialization}
-                  </option>
-                ))}
-              </select>
+                className="input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Contact Number</label>
+              <input
+                type="text"
+                value={patientForm.contact_number}
+                onChange={(e) =>
+                  setPatientForm({
+                    ...patientForm,
+                    contact_number: e.target.value,
+                  })
+                }
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Blood Group</label>
+              <input
+                type="text"
+                value={patientForm.blood_group}
+                onChange={(e) =>
+                  setPatientForm({
+                    ...patientForm,
+                    blood_group: e.target.value,
+                  })
+                }
+                className="input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Emergency Contact</label>
+              <input
+                type="text"
+                value={patientForm.emergency_contact}
+                onChange={(e) =>
+                  setPatientForm({
+                    ...patientForm,
+                    emergency_contact: e.target.value,
+                  })
+                }
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group full-width">
+              <label>Address</label>
+              <textarea
+                value={patientForm.address}
+                onChange={(e) =>
+                  setPatientForm({ ...patientForm, address: e.target.value })
+                }
+                className="input"
+              />
             </div>
           </div>
 
           <button type="submit" className="button primary">
-            Register Member
+            Register Patient
           </button>
         </form>
       </div>
 
       <div className="list-container">
-        <h2>All Members</h2>
-        {members.length === 0 ? (
-          <p className="empty-message">No members registered</p>
+        <h2>All Patients</h2>
+        {patients.length === 0 ? (
+          <p className="empty-message">No patients registered</p>
         ) : (
           <ul className="list">
-            {members.map((member) => (
-              <li key={member.member_id} className="list-item">
-                <div className="member-info">
+            {patients.map((patient) => (
+              <li key={patient.patient_id} className="list-item">
+                <div className="patient-info">
                   <strong>
-                    {member.first_name} {member.last_name}
+                    {patient.first_name} {patient.last_name}
                   </strong>
-                  <p>Email: {member.email || "N/A"}</p>
-                  <p>Contact: {member.contact_number || "N/A"}</p>
+                  <p>Gender: {patient.gender}</p>
                   <p>
-                    Trainer:{" "}
-                    {member.trainer_first_name
-                      ? `${member.trainer_first_name} ${member.trainer_last_name}`
-                      : "None"}
+                    DOB: {new Date(patient.date_of_birth).toLocaleDateString()}
                   </p>
+                  <p>Blood Group: {patient.blood_group || "N/A"}</p>
+                  <p>Contact: {patient.contact_number || "N/A"}</p>
+                  <p>Email: {patient.email || "N/A"}</p>
                 </div>
               </li>
             ))}
@@ -612,258 +502,265 @@ function App() {
     </div>
   );
 
-  // Render memberships page
-  const renderMemberships = () => (
-    <div className="memberships-page">
-      <div className="form-container">
-        <h2>Create New Membership</h2>
-        <form onSubmit={handleMembershipSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Member*</label>
-              <select
-                value={membershipForm.member_id}
-                onChange={(e) =>
-                  setMembershipForm({
-                    ...membershipForm,
-                    member_id: e.target.value,
-                  })
-                }
-                required
-                className="select"
-              >
-                <option value="">Select Member</option>
-                {members.map((member) => (
-                  <option key={member.member_id} value={member.member_id}>
-                    {member.first_name} {member.last_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Membership Type*</label>
-              <select
-                value={membershipForm.membership_type}
-                onChange={(e) =>
-                  setMembershipForm({
-                    ...membershipForm,
-                    membership_type: e.target.value,
-                  })
-                }
-                required
-                className="select"
-              >
-                <option value="Standard">Standard</option>
-                <option value="Premium">Premium</option>
-                <option value="Gold">Gold</option>
-                <option value="Platinum">Platinum</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Start Date*</label>
-              <input
-                type="date"
-                value={membershipForm.start_date}
-                onChange={(e) =>
-                  setMembershipForm({
-                    ...membershipForm,
-                    start_date: e.target.value,
-                  })
-                }
-                required
-                className="input"
-              />
-            </div>
-            <div className="form-group">
-              <label>End Date*</label>
-              <input
-                type="date"
-                value={membershipForm.end_date}
-                onChange={(e) =>
-                  setMembershipForm({
-                    ...membershipForm,
-                    end_date: e.target.value,
-                  })
-                }
-                required
-                className="input"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Monthly Fee*</label>
-              <input
-                type="number"
-                value={membershipForm.monthly_fee}
-                onChange={(e) =>
-                  setMembershipForm({
-                    ...membershipForm,
-                    monthly_fee: e.target.value,
-                  })
-                }
-                required
-                min="0"
-                step="0.01"
-                className="input"
-              />
-            </div>
-            <div className="form-group">
-              <label>Payment Status*</label>
-              <select
-                value={membershipForm.payment_status}
-                onChange={(e) =>
-                  setMembershipForm({
-                    ...membershipForm,
-                    payment_status: e.target.value,
-                  })
-                }
-                required
-                className="select"
-              >
-                <option value="Paid">Paid</option>
-                <option value="Pending">Pending</option>
-                <option value="Overdue">Overdue</option>
-              </select>
-            </div>
-          </div>
-
-          <button type="submit" className="button primary">
-            Create Membership
-          </button>
-        </form>
-      </div>
-
+  // Render patient records page
+  const renderPatientRecords = () => (
+    <div className="patient-records-page">
       <div className="list-container">
-        <h2>All Memberships</h2>
-        {memberships.length === 0 ? (
-          <p className="empty-message">No memberships found</p>
+        <h2>Patient Records</h2>
+        {selectedPatient ? (
+          <div>
+            <div className="patient-detail-header">
+              <button
+                className="button secondary"
+                onClick={() => {
+                  setSelectedPatient(null);
+                  setPatientHistory([]);
+                }}
+              >
+                ← Back to Patients
+              </button>
+              <h3>
+                {selectedPatient.first_name} {selectedPatient.last_name}'s
+                Medical History
+              </h3>
+            </div>
+
+            {isLoading ? (
+              <p className="loading-message">Loading patient history...</p>
+            ) : patientHistory.length === 0 ? (
+              <p className="empty-message">
+                No medical history records found for this patient
+              </p>
+            ) : (
+              <ul className="list">
+                {patientHistory.map((record) => (
+                  <li key={record.history_id} className="list-item">
+                    <div className="history-info">
+                      <strong>{record.disease_name}</strong>
+                      <p>
+                        Diagnosis Date:{" "}
+                        {new Date(record.diagnosis_date).toLocaleDateString()}
+                      </p>
+                      <p>Treatment: {record.treatment || "N/A"}</p>
+                      <p>Notes: {record.notes || "N/A"}</p>
+                      <p>
+                        Chronic Condition: {record.is_chronic ? "Yes" : "No"}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         ) : (
-          <ul className="list">
-            {memberships.map((membership) => (
-              <li key={membership.membership_id} className="list-item">
-                <div className="membership-info">
-                  <strong>
-                    {membership.first_name} {membership.last_name}
-                  </strong>
-                  <p>Type: {membership.membership_type}</p>
-                  <p>
-                    Period:{" "}
-                    {new Date(membership.start_date).toLocaleDateString()} to{" "}
-                    {new Date(membership.end_date).toLocaleDateString()}
-                  </p>
-                  <p>Monthly Fee: ${membership.monthly_fee}</p>
-                  <p
-                    className={`payment-status ${membership.payment_status.toLowerCase()}`}
+          <div>
+            <p className="instruction-message">
+              Select a patient to view their medical history:
+            </p>
+            {patients.length === 0 ? (
+              <p className="empty-message">No patients registered</p>
+            ) : (
+              <ul className="list">
+                {patients.map((patient) => (
+                  <li
+                    key={patient.patient_id}
+                    className="list-item clickable"
+                    onClick={() => fetchPatientHistory(patient.patient_id)}
                   >
-                    Status: {membership.payment_status}
-                  </p>
-                </div>
-                <div className="membership-actions">
-                  {membership.payment_status !== "Paid" && (
-                    <button
-                      className="button primary"
-                      onClick={() =>
-                        handleUpdatePaymentStatus(
-                          membership.membership_id,
-                          "Paid"
-                        )
-                      }
-                    >
-                      Mark as Paid
-                    </button>
-                  )}
-                  {membership.payment_status !== "Pending" && (
-                    <button
-                      className="button secondary"
-                      onClick={() =>
-                        handleUpdatePaymentStatus(
-                          membership.membership_id,
-                          "Pending"
-                        )
-                      }
-                    >
-                      Mark as Pending
-                    </button>
-                  )}
-                  {membership.payment_status !== "Overdue" && (
-                    <button
-                      className="button warning"
-                      onClick={() =>
-                        handleUpdatePaymentStatus(
-                          membership.membership_id,
-                          "Overdue"
-                        )
-                      }
-                    >
-                      Mark as Overdue
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+                    <div className="patient-info">
+                      <strong>
+                        {patient.first_name} {patient.last_name}
+                      </strong>
+                      <p>Gender: {patient.gender}</p>
+                      <p>
+                        DOB:{" "}
+                        {new Date(patient.date_of_birth).toLocaleDateString()}
+                      </p>
+                      <p>Blood Group: {patient.blood_group || "N/A"}</p>
+                      <p>Contact: {patient.contact_number || "N/A"}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 
-  // Render attendance page
-  const renderAttendance = () => (
-    <div className="attendance-page">
+  // Render checkins page
+  const renderCheckins = () => (
+    <div className="checkins-page">
       <div className="form-container">
-        <h2>Record Attendance</h2>
-        <form onSubmit={handleAttendanceSubmit}>
-          <div className="form-group">
-            <label>Member*</label>
-            <select
-              value={attendanceForm.member_id}
-              onChange={(e) =>
-                setAttendanceForm({
-                  ...attendanceForm,
-                  member_id: e.target.value,
-                })
-              }
-              required
-              className="select"
-            >
-              <option value="">Select Member</option>
-              {members.map((member) => (
-                <option key={member.member_id} value={member.member_id}>
-                  {member.first_name} {member.last_name}
-                </option>
-              ))}
-            </select>
+        <h2>Create New Checkin</h2>
+        <form onSubmit={handleCheckinSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Patient*</label>
+              <select
+                value={checkinForm.patient_id}
+                onChange={(e) =>
+                  setCheckinForm({ ...checkinForm, patient_id: e.target.value })
+                }
+                required
+                className="select"
+              >
+                <option value="">Select Patient</option>
+                {patients.map((patient) => (
+                  <option key={patient.patient_id} value={patient.patient_id}>
+                    {patient.first_name} {patient.last_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Doctor*</label>
+              <select
+                value={checkinForm.doctor_id}
+                onChange={(e) =>
+                  setCheckinForm({ ...checkinForm, doctor_id: e.target.value })
+                }
+                required
+                className="select"
+              >
+                <option value="">Select Doctor</option>
+                {doctors.map((doctor) => (
+                  <option key={doctor.doctor_id} value={doctor.doctor_id}>
+                    {doctor.first_name} {doctor.last_name} -{" "}
+                    {doctor.specialization}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Disease*</label>
+              <select
+                value={checkinForm.disease_id}
+                onChange={(e) =>
+                  setCheckinForm({ ...checkinForm, disease_id: e.target.value })
+                }
+                required
+                className="select"
+              >
+                <option value="">Select Disease</option>
+                {diseases.map((disease) => (
+                  <option key={disease.disease_id} value={disease.disease_id}>
+                    {disease.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Status*</label>
+              <select
+                value={checkinForm.status}
+                onChange={(e) =>
+                  setCheckinForm({ ...checkinForm, status: e.target.value })
+                }
+                required
+                className="select"
+              >
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group full-width">
+              <label>Symptoms</label>
+              <textarea
+                value={checkinForm.symptoms}
+                onChange={(e) =>
+                  setCheckinForm({ ...checkinForm, symptoms: e.target.value })
+                }
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group full-width">
+              <label>Diagnosis</label>
+              <textarea
+                value={checkinForm.diagnosis}
+                onChange={(e) =>
+                  setCheckinForm({ ...checkinForm, diagnosis: e.target.value })
+                }
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group full-width">
+              <label>Prescription</label>
+              <textarea
+                value={checkinForm.prescription}
+                onChange={(e) =>
+                  setCheckinForm({
+                    ...checkinForm,
+                    prescription: e.target.value,
+                  })
+                }
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Follow-up Date</label>
+              <input
+                type="date"
+                value={checkinForm.follow_up_date}
+                onChange={(e) =>
+                  setCheckinForm({
+                    ...checkinForm,
+                    follow_up_date: e.target.value,
+                  })
+                }
+                className="input"
+              />
+            </div>
           </div>
 
           <button type="submit" className="button primary">
-            Record Check-in
+            Create Checkin
           </button>
         </form>
       </div>
 
       <div className="list-container">
-        <h2>Today's Attendance</h2>
-        {todayAttendance.length === 0 ? (
-          <p className="empty-message">No attendance records for today</p>
+        <h2>Recent Checkins</h2>
+        {checkins.length === 0 ? (
+          <p className="empty-message">No checkins recorded</p>
         ) : (
           <ul className="list">
-            {todayAttendance.map((record) => (
-              <li key={record.attendance_id} className="list-item">
-                <div className="attendance-info">
+            {checkins.map((checkin) => (
+              <li key={checkin.checkin_id} className="list-item">
+                <div className="checkin-info">
                   <strong>
-                    {record.first_name} {record.last_name}
+                    {checkin.patient_first_name} {checkin.patient_last_name}
                   </strong>
                   <p>
-                    Check-in Time:{" "}
-                    {record.check_in_time
-                      ? new Date(record.check_in_time).toLocaleTimeString()
-                      : "N/A"}
+                    Doctor: Dr. {checkin.doctor_first_name}{" "}
+                    {checkin.doctor_last_name}
                   </p>
+                  <p>Disease: {checkin.disease_name}</p>
+                  <p>Status: {checkin.status}</p>
+                  <p>Date: {new Date(checkin.checkin_date).toLocaleString()}</p>
+                  {checkin.follow_up_date && (
+                    <p>
+                      Follow-up:{" "}
+                      {new Date(checkin.follow_up_date).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
               </li>
             ))}
@@ -876,7 +773,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>Gym Management System</h1>
+        <h1>Hospital Management System</h1>
         <nav className="nav">
           <button
             className={`nav-btn ${page === "dashboard" ? "active" : ""}`}
@@ -885,22 +782,26 @@ function App() {
             Dashboard
           </button>
           <button
-            className={`nav-btn ${page === "members" ? "active" : ""}`}
-            onClick={() => setPage("members")}
+            className={`nav-btn ${page === "patients" ? "active" : ""}`}
+            onClick={() => setPage("patients")}
           >
-            Members
+            Patients
           </button>
           <button
-            className={`nav-btn ${page === "memberships" ? "active" : ""}`}
-            onClick={() => setPage("memberships")}
+            className={`nav-btn ${page === "checkins" ? "active" : ""}`}
+            onClick={() => setPage("checkins")}
           >
-            Memberships
+            Check-ins
           </button>
           <button
-            className={`nav-btn ${page === "attendance" ? "active" : ""}`}
-            onClick={() => setPage("attendance")}
+            className={`nav-btn ${page === "patientRecords" ? "active" : ""}`}
+            onClick={() => {
+              setPage("patientRecords");
+              setSelectedPatient(null);
+              setPatientHistory([]);
+            }}
           >
-            Attendance
+            Patient Records
           </button>
         </nav>
       </header>
@@ -920,9 +821,9 @@ function App() {
         )}
 
         {page === "dashboard" && renderDashboard()}
-        {page === "members" && renderMembers()}
-        {page === "memberships" && renderMemberships()}
-        {page === "attendance" && renderAttendance()}
+        {page === "patients" && renderPatients()}
+        {page === "checkins" && renderCheckins()}
+        {page === "patientRecords" && renderPatientRecords()}
       </main>
     </div>
   );

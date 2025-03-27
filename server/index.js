@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import db from "./db.js";
+import { getDatabase } from "./db.js";
 
 const app = express();
 const port = 5000;
@@ -8,210 +8,75 @@ const port = 5000;
 app.use(cors());
 app.use(express.json());
 
-// Helper function to get member by ID
-const getMember = (memberId) => {
-  return new Promise((resolve, reject) => {
-    db.get(
-      "SELECT * FROM member WHERE member_id = ?",
-      [memberId],
-      (err, row) => {
-        if (err) reject(err);
-        if (!row) reject(new Error("Member not found"));
-        resolve(row);
-      }
-    );
-  });
-};
+let db;
 
-// Helper function to get membership by member ID
-const getMembership = (memberId) => {
-  return new Promise((resolve, reject) => {
-    db.get(
-      "SELECT * FROM membership WHERE member_id = ?",
-      [memberId],
-      (err, row) => {
-        if (err) reject(err);
-        if (!row) reject(new Error("Membership not found"));
-        resolve(row);
-      }
-    );
-  });
-};
+// Initialize database before starting the server
+const initializeApp = async () => {
+  try {
+    db = await getDatabase();
 
-// Helper function to get trainer by ID
-const getTrainer = (trainerId) => {
-  return new Promise((resolve, reject) => {
-    db.get(
-      "SELECT * FROM trainer WHERE trainer_id = ?",
-      [trainerId],
-      (err, row) => {
-        if (err) reject(err);
-        if (!row) reject(new Error("Trainer not found"));
-        resolve(row);
-      }
-    );
-  });
-};
-
-// MEMBER ENDPOINTS
-
-// Get all members
-app.get("/api/members", (req, res) => {
-  const query = `
-    SELECT m.*, t.first_name as trainer_first_name, t.last_name as trainer_last_name
-    FROM member m
-    LEFT JOIN trainer t ON m.trainer_id = t.trainer_id
-    ORDER BY m.last_name, m.first_name
-  `;
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// Get member by ID
-app.get("/api/members/:id", (req, res) => {
-  const query = `
-    SELECT m.*, t.first_name as trainer_first_name, t.last_name as trainer_last_name
-    FROM member m
-    LEFT JOIN trainer t ON m.trainer_id = t.trainer_id
-    WHERE m.member_id = ?
-  `;
-  db.get(query, [req.params.id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row) {
-      return res.status(404).json({ error: "Member not found" });
-    }
-    res.json(row);
-  });
-});
-
-// Create new member
-app.post("/api/members", (req, res) => {
-  const {
-    first_name,
-    last_name,
-    trainer_id,
-    contact_number,
-    email,
-    date_of_birth,
-    gender,
-  } = req.body;
-
-  if (!first_name || !last_name) {
-    return res
-      .status(400)
-      .json({ error: "First name and last name are required" });
+    // Start the server only after database is initialized
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+    process.exit(1);
   }
+};
 
-  const query = `
-    INSERT INTO member (first_name, last_name, trainer_id, contact_number, email, date_of_birth, gender)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
+// Initialize the application
+initializeApp();
 
-  db.run(
-    query,
-    [
-      first_name,
-      last_name,
-      trainer_id,
-      contact_number,
-      email,
-      date_of_birth,
-      gender,
-    ],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
+// Helper functions
+const getPatient = (patientId) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT * FROM patient WHERE patient_id = ?",
+      [patientId],
+      (err, row) => {
+        if (err) reject(err);
+        if (!row) reject(new Error("Patient not found"));
+        resolve(row);
       }
+    );
+  });
+};
 
-      res.status(201).json({
-        message: "Member created successfully",
-        member_id: this.lastID,
-      });
-    }
-  );
-});
-
-// Update member
-app.put("/api/members/:id", (req, res) => {
-  const {
-    first_name,
-    last_name,
-    trainer_id,
-    contact_number,
-    email,
-    date_of_birth,
-    gender,
-  } = req.body;
-
-  if (!first_name || !last_name) {
-    return res
-      .status(400)
-      .json({ error: "First name and last name are required" });
-  }
-
-  const query = `
-    UPDATE member
-    SET first_name = ?, last_name = ?, trainer_id = ?, contact_number = ?, email = ?, date_of_birth = ?, gender = ?
-    WHERE member_id = ?
-  `;
-
-  db.run(
-    query,
-    [
-      first_name,
-      last_name,
-      trainer_id,
-      contact_number,
-      email,
-      date_of_birth,
-      gender,
-      req.params.id,
-    ],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
+const getDoctor = (doctorId) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT * FROM doctor WHERE doctor_id = ?",
+      [doctorId],
+      (err, row) => {
+        if (err) reject(err);
+        if (!row) reject(new Error("Doctor not found"));
+        resolve(row);
       }
+    );
+  });
+};
 
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Member not found" });
+const getDisease = (diseaseId) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT * FROM disease WHERE disease_id = ?",
+      [diseaseId],
+      (err, row) => {
+        if (err) reject(err);
+        if (!row) reject(new Error("Disease not found"));
+        resolve(row);
       }
+    );
+  });
+};
 
-      res.json({ message: "Member updated successfully" });
-    }
-  );
-});
+// PATIENT ENDPOINTS
 
-// Delete member
-app.delete("/api/members/:id", (req, res) => {
-  db.run(
-    "DELETE FROM member WHERE member_id = ?",
-    [req.params.id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-
-      res.json({ message: "Member deleted successfully" });
-    }
-  );
-});
-
-// TRAINER ENDPOINTS
-
-// Get all trainers
-app.get("/api/trainers", (req, res) => {
+// Get all patients
+app.get("/api/patients", (req, res) => {
   db.all(
-    "SELECT * FROM trainer ORDER BY last_name, first_name",
+    "SELECT * FROM patient ORDER BY last_name, first_name",
     [],
     (err, rows) => {
       if (err) {
@@ -222,70 +87,169 @@ app.get("/api/trainers", (req, res) => {
   );
 });
 
-// Get trainer by ID
-app.get("/api/trainers/:id", (req, res) => {
+// Get patient by ID
+app.post("/api/patients", (req, res) => {
+  const {
+    first_name,
+    last_name,
+    date_of_birth,
+    gender,
+    contact_number,
+    email,
+    blood_group,
+    address,
+    emergency_contact,
+  } = req.body;
+
+  if (!first_name || !last_name || !date_of_birth || !gender) {
+    return res.status(400).json({
+      error: "First name, last name, date of birth, and gender are required",
+    });
+  }
+
+  const query = `
+    INSERT INTO patient (
+      first_name, last_name, date_of_birth, gender, 
+      contact_number, email, blood_group, address, emergency_contact
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  db.run(
+    query,
+    [
+      first_name,
+      last_name,
+      date_of_birth,
+      gender,
+      contact_number,
+      email,
+      blood_group,
+      address,
+      emergency_contact,
+    ],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json({
+        message: "Patient created successfully",
+        patient_id: this.lastID,
+      });
+    }
+  );
+});
+
+// Update patient
+app.put("/api/patients/:id", (req, res) => {
+  const {
+    first_name,
+    last_name,
+    date_of_birth,
+    gender,
+    contact_number,
+    email,
+    blood_group,
+    address,
+    emergency_contact,
+  } = req.body;
+
+  if (!first_name || !last_name || !date_of_birth || !gender) {
+    return res.status(400).json({
+      error: "First name, last name, date of birth, and gender are required",
+    });
+  }
+
+  const query = `
+    UPDATE patient
+    SET first_name = ?, last_name = ?, date_of_birth = ?, gender = ?,
+        contact_number = ?, email = ?, blood_group = ?, address = ?, emergency_contact = ?
+    WHERE patient_id = ?
+  `;
+
+  db.run(
+    query,
+    [
+      first_name,
+      last_name,
+      date_of_birth,
+      gender,
+      contact_number,
+      email,
+      blood_group,
+      address,
+      emergency_contact,
+      req.params.id,
+    ],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+      res.json({ message: "Patient updated successfully" });
+    }
+  );
+});
+
+// DOCTOR ENDPOINTS
+
+// Get all doctors
+app.get("/api/doctors", (req, res) => {
+  db.all(
+    "SELECT * FROM doctor ORDER BY last_name, first_name",
+    [],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.json(rows);
+    }
+  );
+});
+
+// Get doctor by ID
+app.get("/api/doctors/:id", (req, res) => {
   db.get(
-    "SELECT * FROM trainer WHERE trainer_id = ?",
+    "SELECT * FROM doctor WHERE doctor_id = ?",
     [req.params.id],
     (err, row) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
       if (!row) {
-        return res.status(404).json({ error: "Trainer not found" });
+        return res.status(404).json({ error: "Doctor not found" });
       }
       res.json(row);
     }
   );
 });
 
-// Create new trainer
-app.post("/api/trainers", (req, res) => {
-  const { first_name, last_name, specialization, contact_number, hourly_rate } =
-    req.body;
+// Create new doctor
+app.post("/api/doctors", (req, res) => {
+  const {
+    first_name,
+    last_name,
+    specialization,
+    contact_number,
+    email,
+    qualification,
+    consultation_fee,
+  } = req.body;
 
-  if (!first_name || !last_name) {
-    return res
-      .status(400)
-      .json({ error: "First name and last name are required" });
+  if (!first_name || !last_name || !specialization) {
+    return res.status(400).json({
+      error: "First name, last name, and specialization are required",
+    });
   }
 
   const query = `
-    INSERT INTO trainer (first_name, last_name, specialization, contact_number, hourly_rate)
-    VALUES (?, ?, ?, ?, ?)
-  `;
-
-  db.run(
-    query,
-    [first_name, last_name, specialization, contact_number, hourly_rate],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      res.status(201).json({
-        message: "Trainer created successfully",
-        trainer_id: this.lastID,
-      });
-    }
-  );
-});
-
-// Update trainer
-app.put("/api/trainers/:id", (req, res) => {
-  const { first_name, last_name, specialization, contact_number, hourly_rate } =
-    req.body;
-
-  if (!first_name || !last_name) {
-    return res
-      .status(400)
-      .json({ error: "First name and last name are required" });
-  }
-
-  const query = `
-    UPDATE trainer
-    SET first_name = ?, last_name = ?, specialization = ?, contact_number = ?, hourly_rate = ?
-    WHERE trainer_id = ?
+    INSERT INTO doctor (
+      first_name, last_name, specialization, 
+      contact_number, email, qualification, consultation_fee
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.run(
@@ -295,253 +259,189 @@ app.put("/api/trainers/:id", (req, res) => {
       last_name,
       specialization,
       contact_number,
-      hourly_rate,
-      req.params.id,
+      email,
+      qualification,
+      consultation_fee,
     ],
     function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Trainer not found" });
-      }
-
-      res.json({ message: "Trainer updated successfully" });
-    }
-  );
-});
-
-// Delete trainer
-app.delete("/api/trainers/:id", (req, res) => {
-  db.run(
-    "DELETE FROM trainer WHERE trainer_id = ?",
-    [req.params.id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Trainer not found" });
-      }
-
-      res.json({ message: "Trainer deleted successfully" });
-    }
-  );
-});
-
-// MEMBERSHIP ENDPOINTS
-
-// Get all memberships
-app.get("/api/memberships", (req, res) => {
-  const query = `
-    SELECT ms.*, m.first_name, m.last_name
-    FROM membership ms
-    JOIN member m ON ms.member_id = m.member_id
-    ORDER BY ms.end_date
-  `;
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// Get membership by ID
-app.get("/api/memberships/:id", (req, res) => {
-  const query = `
-    SELECT ms.*, m.first_name, m.last_name
-    FROM membership ms
-    JOIN member m ON ms.member_id = m.member_id
-    WHERE ms.membership_id = ?
-  `;
-  db.get(query, [req.params.id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row) {
-      return res.status(404).json({ error: "Membership not found" });
-    }
-    res.json(row);
-  });
-});
-
-// Get membership by member ID
-app.get("/api/members/:id/membership", (req, res) => {
-  const query = `
-    SELECT *
-    FROM membership
-    WHERE member_id = ?
-  `;
-  db.get(query, [req.params.id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row) {
-      return res.status(404).json({ error: "Membership not found" });
-    }
-    res.json(row);
-  });
-});
-
-// Create new membership
-app.post("/api/memberships", (req, res) => {
-  const {
-    member_id,
-    membership_type,
-    start_date,
-    end_date,
-    monthly_fee,
-    payment_status,
-  } = req.body;
-
-  if (
-    !member_id ||
-    !membership_type ||
-    !start_date ||
-    !end_date ||
-    !monthly_fee ||
-    !payment_status
-  ) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
-  const query = `
-    INSERT INTO membership (member_id, membership_type, start_date, end_date, monthly_fee, payment_status)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-
-  db.run(
-    query,
-    [
-      member_id,
-      membership_type,
-      start_date,
-      end_date,
-      monthly_fee,
-      payment_status,
-    ],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
       res.status(201).json({
-        message: "Membership created successfully",
-        membership_id: this.lastID,
+        message: "Doctor created successfully",
+        doctor_id: this.lastID,
       });
     }
   );
 });
 
-// Update membership
-app.put("/api/memberships/:id", (req, res) => {
-  const { membership_type, start_date, end_date, monthly_fee, payment_status } =
-    req.body;
+// DISEASE ENDPOINTS
 
-  if (
-    !membership_type ||
-    !start_date ||
-    !end_date ||
-    !monthly_fee ||
-    !payment_status
-  ) {
-    return res.status(400).json({ error: "All fields are required" });
+// Get all diseases
+app.get("/api/diseases", (req, res) => {
+  db.all("SELECT * FROM disease ORDER BY name", [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
+// Get disease by ID
+app.get("/api/diseases/:id", (req, res) => {
+  db.get(
+    "SELECT * FROM disease WHERE disease_id = ?",
+    [req.params.id],
+    (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      if (!row) {
+        return res.status(404).json({ error: "Disease not found" });
+      }
+      res.json(row);
+    }
+  );
+});
+
+// Create new disease
+app.post("/api/diseases", (req, res) => {
+  const { name, description, symptoms, severity, is_contagious } = req.body;
+
+  if (!name || !description) {
+    return res.status(400).json({
+      error: "Disease name and description are required",
+    });
   }
 
   const query = `
-    UPDATE membership
-    SET membership_type = ?, start_date = ?, end_date = ?, monthly_fee = ?, payment_status = ?
-    WHERE membership_id = ?
+    INSERT INTO disease (name, description, symptoms, severity, is_contagious)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  db.run(
+    query,
+    [name, description, symptoms, severity, is_contagious],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json({
+        message: "Disease created successfully",
+        disease_id: this.lastID,
+      });
+    }
+  );
+});
+
+// CHECKIN ENDPOINTS
+
+// Get all checkins
+app.get("/api/checkins", (req, res) => {
+  const query = `
+    SELECT c.*, 
+           p.first_name as patient_first_name, p.last_name as patient_last_name,
+           d.first_name as doctor_first_name, d.last_name as doctor_last_name,
+           ds.name as disease_name
+    FROM checkin c
+    JOIN patient p ON c.patient_id = p.patient_id
+    JOIN doctor d ON c.doctor_id = d.doctor_id
+    JOIN disease ds ON c.disease_id = ds.disease_id
+    ORDER BY c.checkin_date DESC
+  `;
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
+// Get checkin by ID
+app.get("/api/checkins/:id", (req, res) => {
+  const query = `
+    SELECT c.*, 
+           p.first_name as patient_first_name, p.last_name as patient_last_name,
+           d.first_name as doctor_first_name, d.last_name as doctor_last_name,
+           ds.name as disease_name
+    FROM checkin c
+    JOIN patient p ON c.patient_id = p.patient_id
+    JOIN doctor d ON c.doctor_id = d.doctor_id
+    JOIN disease ds ON c.disease_id = ds.disease_id
+    WHERE c.checkin_id = ?
+  `;
+  db.get(query, [req.params.id], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!row) {
+      return res.status(404).json({ error: "Checkin not found" });
+    }
+    res.json(row);
+  });
+});
+
+// Create new checkin
+app.post("/api/checkins", (req, res) => {
+  const {
+    patient_id,
+    doctor_id,
+    disease_id,
+    status,
+    symptoms,
+    diagnosis,
+    prescription,
+    follow_up_date,
+  } = req.body;
+
+  if (!patient_id || !doctor_id || !disease_id || !status) {
+    return res.status(400).json({
+      error: "Patient ID, Doctor ID, Disease ID, and status are required",
+    });
+  }
+
+  const query = `
+    INSERT INTO checkin (
+      patient_id, doctor_id, disease_id, status,
+      symptoms, diagnosis, prescription, follow_up_date
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.run(
     query,
     [
-      membership_type,
-      start_date,
-      end_date,
-      monthly_fee,
-      payment_status,
-      req.params.id,
+      patient_id,
+      doctor_id,
+      disease_id,
+      status,
+      symptoms,
+      diagnosis,
+      prescription,
+      follow_up_date,
     ],
     function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Membership not found" });
-      }
-
-      res.json({ message: "Membership updated successfully" });
+      res.status(201).json({
+        message: "Checkin created successfully",
+        checkin_id: this.lastID,
+      });
     }
   );
 });
 
-// Delete membership
-app.delete("/api/memberships/:id", (req, res) => {
-  db.run(
-    "DELETE FROM membership WHERE membership_id = ?",
-    [req.params.id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+// MEDICAL HISTORY ENDPOINTS
 
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Membership not found" });
-      }
-
-      res.json({ message: "Membership deleted successfully" });
-    }
-  );
-});
-
-// ATTENDANCE ENDPOINTS
-
-// Get all attendance records
-app.get("/api/attendance", (req, res) => {
+// Get patient's medical history
+app.get("/api/patients/:id/history", (req, res) => {
   const query = `
-    SELECT a.*, m.first_name, m.last_name
-    FROM attendance a
-    JOIN member m ON a.member_id = m.member_id
-    ORDER BY a.attendance_date DESC, a.check_in_time DESC
-  `;
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// Get attendance records for today
-app.get("/api/attendance/today", (req, res) => {
-  const query = `
-    SELECT a.*, m.first_name, m.last_name
-    FROM attendance a
-    JOIN member m ON a.member_id = m.member_id
-    WHERE a.attendance_date = date('now')
-    ORDER BY a.check_in_time DESC
-  `;
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// Get attendance records for a specific member
-app.get("/api/members/:id/attendance", (req, res) => {
-  const query = `
-    SELECT *
-    FROM attendance
-    WHERE member_id = ?
-    ORDER BY attendance_date DESC, check_in_time DESC
+    SELECT h.*, d.name as disease_name
+    FROM medical_history h
+    JOIN disease d ON h.disease_id = d.disease_id
+    WHERE h.patient_id = ?
+    ORDER BY h.diagnosis_date DESC
   `;
   db.all(query, [req.params.id], (err, rows) => {
     if (err) {
@@ -551,75 +451,57 @@ app.get("/api/members/:id/attendance", (req, res) => {
   });
 });
 
-// Record attendance (check-in)
-app.post("/api/attendance", (req, res) => {
-  const { member_id } = req.body;
+// Create medical history entry
+app.post("/api/medical-history", (req, res) => {
+  const {
+    patient_id,
+    disease_id,
+    diagnosis_date,
+    treatment,
+    notes,
+    is_chronic,
+  } = req.body;
 
-  if (!member_id) {
-    return res.status(400).json({ error: "Member ID is required" });
+  if (!patient_id || !disease_id || !diagnosis_date) {
+    return res.status(400).json({
+      error: "Patient ID, Disease ID, and diagnosis date are required",
+    });
   }
 
-  // Check if member exists
-  db.get(
-    "SELECT * FROM member WHERE member_id = ?",
-    [member_id],
-    (err, row) => {
+  const query = `
+    INSERT INTO medical_history (
+      patient_id, disease_id, diagnosis_date,
+      treatment, notes, is_chronic
+    )
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+
+  db.run(
+    query,
+    [patient_id, disease_id, diagnosis_date, treatment, notes, is_chronic],
+    function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-
-      if (!row) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-
-      // Check if member has already checked in today
-      db.get(
-        "SELECT * FROM attendance WHERE member_id = ? AND attendance_date = date('now')",
-        [member_id],
-        (err, existingAttendance) => {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
-
-          if (existingAttendance) {
-            return res
-              .status(400)
-              .json({ error: "Member has already checked in today" });
-          }
-
-          // Record attendance
-          db.run(
-            "INSERT INTO attendance (member_id) VALUES (?)",
-            [member_id],
-            function (err) {
-              if (err) {
-                return res.status(500).json({ error: err.message });
-              }
-
-              res.status(201).json({
-                message: "Attendance recorded successfully",
-                attendance_id: this.lastID,
-              });
-            }
-          );
-        }
-      );
+      res.status(201).json({
+        message: "Medical history entry created successfully",
+        history_id: this.lastID,
+      });
     }
   );
 });
 
 // DASHBOARD ENDPOINTS
 
-// Get membership statistics
-app.get("/api/stats/memberships", (req, res) => {
+// Get hospital statistics
+app.get("/api/stats/hospital", (req, res) => {
   const query = `
     SELECT 
-      COUNT(*) as total_memberships,
-      SUM(CASE WHEN payment_status = 'Paid' THEN 1 ELSE 0 END) as paid_memberships,
-      SUM(CASE WHEN payment_status = 'Pending' THEN 1 ELSE 0 END) as pending_memberships,
-      SUM(CASE WHEN payment_status = 'Overdue' THEN 1 ELSE 0 END) as overdue_memberships,
-      SUM(monthly_fee) as total_monthly_revenue
-    FROM membership
+      (SELECT COUNT(*) FROM patient) as total_patients,
+      (SELECT COUNT(*) FROM doctor) as total_doctors,
+      (SELECT COUNT(*) FROM checkin WHERE date(checkin_date) = date('now')) as today_checkins,
+      (SELECT COUNT(*) FROM checkin WHERE date(checkin_date) >= date('now', '-7 days')) as week_checkins,
+      (SELECT COUNT(*) FROM disease) as total_diseases
   `;
   db.get(query, [], (err, row) => {
     if (err) {
@@ -629,14 +511,17 @@ app.get("/api/stats/memberships", (req, res) => {
   });
 });
 
-// Get membership types distribution
-app.get("/api/stats/membership-types", (req, res) => {
+// Get disease statistics
+app.get("/api/stats/diseases", (req, res) => {
   const query = `
     SELECT 
-      membership_type,
-      COUNT(*) as count
-    FROM membership
-    GROUP BY membership_type
+      d.name,
+      COUNT(c.checkin_id) as total_cases,
+      COUNT(CASE WHEN date(c.checkin_date) >= date('now', '-30 days') THEN 1 END) as month_cases
+    FROM disease d
+    LEFT JOIN checkin c ON d.disease_id = c.disease_id
+    GROUP BY d.disease_id, d.name
+    ORDER BY total_cases DESC
   `;
   db.all(query, [], (err, rows) => {
     if (err) {
@@ -646,33 +531,19 @@ app.get("/api/stats/membership-types", (req, res) => {
   });
 });
 
-// Get attendance statistics
-app.get("/api/stats/attendance", (req, res) => {
+// Get doctor workload
+app.get("/api/stats/doctor-workload", (req, res) => {
   const query = `
     SELECT 
-      COUNT(*) as total_attendance,
-      COUNT(DISTINCT member_id) as unique_members,
-      COUNT(CASE WHEN attendance_date = date('now') THEN 1 END) as today_attendance,
-      COUNT(CASE WHEN attendance_date >= date('now', '-7 days') THEN 1 END) as week_attendance,
-      COUNT(CASE WHEN attendance_date >= date('now', '-30 days') THEN 1 END) as month_attendance
-    FROM attendance
-  `;
-  db.get(query, [], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(row);
-  });
-});
-
-// Get members with expiring memberships
-app.get("/api/stats/expiring-memberships", (req, res) => {
-  const query = `
-    SELECT ms.*, m.first_name, m.last_name
-    FROM membership ms
-    JOIN member m ON ms.member_id = m.member_id
-    WHERE ms.end_date BETWEEN date('now') AND date('now', '+30 days')
-    ORDER BY ms.end_date
+      d.doctor_id,
+      d.first_name,
+      d.last_name,
+      COUNT(c.checkin_id) as total_patients,
+      COUNT(CASE WHEN date(c.checkin_date) = date('now') THEN 1 END) as today_patients
+    FROM doctor d
+    LEFT JOIN checkin c ON d.doctor_id = c.doctor_id
+    GROUP BY d.doctor_id, d.first_name, d.last_name
+    ORDER BY today_patients DESC
   `;
   db.all(query, [], (err, rows) => {
     if (err) {
@@ -680,8 +551,4 @@ app.get("/api/stats/expiring-memberships", (req, res) => {
     }
     res.json(rows);
   });
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
 });
