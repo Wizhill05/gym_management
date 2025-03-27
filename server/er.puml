@@ -1,72 +1,50 @@
-@startuml Hospital Management System Database Schema
+@startuml Gym Management System Database Schema
 
 ' Entity definitions
-entity "patient" {
-  *patient_id: INTEGER <<PK>>
+entity "member" {
+  *member_id: INTEGER <<PK>>
+  --
+  trainer_id: INTEGER <<FK>>
+  *first_name: TEXT
+  *last_name: TEXT
+  contact_number: TEXT
+  email: TEXT <<UNIQUE>>
+  date_of_birth: DATE
+  gender: TEXT
+}
+
+entity "membership" {
+  *membership_id: INTEGER <<PK>>
+  --
+  *member_id: INTEGER <<FK>> <<UNIQUE>>
+  *membership_type: TEXT
+  *start_date: DATE
+  *end_date: DATE
+  *monthly_fee: DECIMAL(10,2)
+  *payment_status: TEXT
+}
+
+entity "trainer" {
+  *trainer_id: INTEGER <<PK>>
   --
   *first_name: TEXT
   *last_name: TEXT
-  *date_of_birth: DATE
-  *gender: TEXT
+  specialization: TEXT
   contact_number: TEXT
-  email: TEXT <<UNIQUE>>
-  blood_group: TEXT
-  address: TEXT
-  emergency_contact: TEXT
+  hourly_rate: DECIMAL(10,2)
 }
 
-entity "doctor" {
-  *doctor_id: INTEGER <<PK>>
+entity "attendance" {
+  *attendance_id: INTEGER <<PK>>
   --
-  *first_name: TEXT
-  *last_name: TEXT
-  *specialization: TEXT
-  contact_number: TEXT
-  email: TEXT <<UNIQUE>>
-  qualification: TEXT
-  consultation_fee: DECIMAL(10,2)
-}
-
-entity "disease" {
-  *disease_id: INTEGER <<PK>>
-  --
-  *name: TEXT
-  *description: TEXT
-  symptoms: TEXT
-  severity: TEXT
-  is_contagious: BOOLEAN
-}
-
-entity "checkin" {
-  *checkin_id: INTEGER <<PK>>
-  --
-  *patient_id: INTEGER <<FK>>
-  *doctor_id: INTEGER <<FK>>
-  *disease_id: INTEGER <<FK>>
-  *checkin_date: DATETIME
-  *status: TEXT
-  symptoms: TEXT
-  diagnosis: TEXT
-  prescription: TEXT
-  follow_up_date: DATE
-}
-
-entity "medical_history" {
-  *history_id: INTEGER <<PK>>
-  --
-  *patient_id: INTEGER <<FK>>
-  *disease_id: INTEGER <<FK>>
-  *diagnosis_date: DATE
-  treatment: TEXT
-  notes: TEXT
-  is_chronic: BOOLEAN
+  *member_id: INTEGER <<FK>>
+  *attendance_date: DATE
+  *check_in_time: DATETIME
 }
 
 ' Relationships
-patient ||--o{ checkin : has
-doctor ||--o{ checkin : handles
-disease ||--o{ checkin : diagnosed_with
-patient ||--o{ medical_history : has
-disease ||--o{ medical_history : recorded_in
+member ||--|| membership : has
+trainer ||--o{ member : trains
+member ||--o{ attendance : checks_in
 
 @enduml
